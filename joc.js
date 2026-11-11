@@ -282,8 +282,8 @@ let bubble, glassU, medU, shadow, coverA, coverB;
 
 function standup(tex, w, h) {                                    // paper cut-out standing on the ground, turns to the camera
   const geo = new THREE.PlaneGeometry(w, h); geo.translate(0, h / 2, 0);
-  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: false, alphaTest: .5, side: THREE.DoubleSide }));
-  m.userData.stand = true; return m;
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: false, alphaTest: .12, side: THREE.DoubleSide }));
+  m.userData.stand = true; m.userData.h = h; m.userData.hw = w / 2; m.userData.mats = [m.material]; return m;
 }
 function decal(tex, w, h, opts = {}) {
   const geo = new THREE.PlaneGeometry(w, h); geo.rotateX(-Math.PI / 2);
@@ -445,7 +445,7 @@ function buildScenery() {
   scatter(T_ROLL + 1, bt(12), .55, (x, z, r) => { const t = r() < .6 ? trees[r() * 4 | 0] : rocks[r() * 3 | 0]; const s = .8 + r() * .7; const m = t.image.height > 300 ? standup(t, 1.5 * s, 3.0 * s) : standup(t, 2.0 * s, 1.5 * s); addProp(m, x, z, 'tree', { r: 1.0 }); }, rnd, 2.2, 5.5, 1.9);
   // verse 1: a night city that turns into dawn
   scatter(bt(12), bt(28), .7, (x, z, r) => {
-    if (r() < .62) { const w = 2.2 + r() * 1.8, h = 4 + r() * 7, dd = 2 + r() * 1.5; const geo = new THREE.BoxGeometry(w, h, dd); geo.translate(0, h / 2, 0); const fm = new THREE.MeshBasicMaterial({ map: facN[r() * 4 | 0] }); const b = new THREE.Mesh(geo, [fm, fm, roofM, roofM, fm, fm]); const eg = new THREE.LineSegments(new THREE.EdgesGeometry(geo), MAT.ink); b.add(eg); addProp(b, x, z, 'bld', { r: Math.max(w, dd) * .75 }); }
+    if (r() < .62) { const w = 2.2 + r() * 1.6, h = 2.8 + r() * 3.6, dd = 2 + r() * 1.3; const geo = new THREE.BoxGeometry(w, h, dd); geo.translate(0, h / 2, 0); const fm = new THREE.MeshBasicMaterial({ map: facN[r() * 4 | 0] }), rm = roofM.clone(), em = MAT.ink.clone(); const b = new THREE.Mesh(geo, [fm, fm, rm, rm, fm, fm]); const eg = new THREE.LineSegments(new THREE.EdgesGeometry(geo), em); b.add(eg); addProp(b, x, z, 'bld', { r: Math.max(w, dd) * .75, h, hw: Math.hypot(w, dd) / 2, mats: [fm, rm, em] }); }
     else { const m = standup(lampT, .7, 3.6); addProp(m, x, z, 'lamp', { r: .5 }); }
   }, rnd, 2.6, 6.5, 2.2);
   scatter(FX.noroi - 2.2, FX.noroi + 2.5, .35, (x, z, r) => { const m = decal(puddle[r() * 2 | 0], 1.6 + r() * 1.6, 1.4 + r() * 1.2); m.position.y = .02; m.rotation.y = r() * 6; addProp(m, x, z, 'puddle', { r: .2 }); }, rnd, 1.6, 4.5, 1.4);
@@ -643,6 +643,8 @@ function updateWorld(t, dt) {
     else if (k === 'crack') m.material.opacity = sstep(FX.cutremur, FX.cutremur + 1.2, t);
     else if (k === 'lamp' || k === 'bld') { }
   }
+  // nothing tall may hide the path just ahead of the bubble: props in front of it go see-through
+  unhide(t, dt);
   // the wolves howl with the chant
   let hw = 0, wolf = null; for (const w of (OBJ.wolves || [])) { const a = clamp(1 - Math.abs(t - w.userData.jt - .45) / .7, 0, 1); if (a > hw) { hw = a; wolf = w; } }
   OBJ.howl.material.opacity = hw; OBJ.howl.visible = hw > .02; if (wolf) OBJ.howl.position.set(wolf.position.x, 3.0 + hw * .4, wolf.position.z);
@@ -651,6 +653,27 @@ function updateWorld(t, dt) {
   stepParticles(dt);
 }
 
+const _ndc = new THREE.Vector3(), _rt = new THREE.Vector3(), SAMP = [];
+for (let i = 0; i < 16; i++) SAMP.push({ x: 0, y: 0, d: 0 });
+function unhide(t, dt) {
+  camera.updateMatrixWorld(); _rt.setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
+  const cp = camera.position;
+  for (let i = 0; i < SAMP.length; i++) { const q = pathPos(t - .3 + i * .25, _pp); _ndc.set(q.x, TH + .4, q.z); const d = _ndc.distanceTo(cp); _ndc.project(camera); SAMP[i].x = _ndc.x; SAMP[i].y = _ndc.y; SAMP[i].d = d; }
+  for (const m of PROPS) {
+    const u = m.userData; if (!u.h || u.h < 1.2 || !u.mats) continue;
+    let target = 1;
+    if (m.visible) {
+      let x0 = 9, x1 = -9, y0 = 9, y1 = -9;
+      for (const sx of [-1, 1]) for (const yy of [0, u.h * Math.max(.05, m.scale.y)]) { _ndc.set(m.position.x + _rt.x * sx * u.hw, yy, m.position.z + _rt.z * sx * u.hw).project(camera); x0 = Math.min(x0, _ndc.x); x1 = Math.max(x1, _ndc.x); y0 = Math.min(y0, _ndc.y); y1 = Math.max(y1, _ndc.y); }
+      const dm = _ndc.set(m.position.x, u.h * .5, m.position.z).distanceTo(cp) - u.hw * .6;
+      for (const sp of SAMP) if (sp.x > x0 - .08 && sp.x < x1 + .08 && sp.y > y0 - .05 && sp.y < y1 + .05 && sp.d > dm + .4) { target = .22; break; }
+    }
+    const op = u.op == null ? 1 : u.op, nop = m.visible ? op + (target - op) * Math.min(1, dt * 9) : target;
+    if (Math.abs(nop - op) < .002 && u.op != null) continue;
+    u.op = nop;
+    for (const mt of u.mats) { mt.opacity = nop; mt.transparent = nop < .995; mt.depthWrite = nop > .99; }
+  }
+}
 /* ---------------- judging ---------------- */
 function grade(dt) { const a = Math.abs(dt); return a <= PERF ? 'perfect' : a <= GOOD ? 'good' : 'ok'; }
 const GTXT = { perfect: 'PERFECT', good: 'BINE', ok: 'OK' };
