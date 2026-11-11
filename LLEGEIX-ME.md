@@ -32,8 +32,7 @@ Si no hi ha `versuri.txt`, el joc funciona igual però sense lletra.
 ## Publicar-lo (GitHub Pages)
 Settings → Pages → Branch: `main` / `(root)` → Save.
 
-L'adreça serà `https://fobdbat.github.io/<nom-del-repositori>/`.
+L'adreça serà **https://fobdbat.github.io/Cabron_fenomenal/** (la imatge per compartir a xarxes ja apunta aquí).
 
-## Pendent
-- **GoatCounter propi:** cal que en creïs un per a aquest joc i em passis el codi per afegir-lo.
-- **Imatge per compartir a xarxes (`og:image`):** necessita l'adreça definitiva del joc.
+## Més endavant
+- GoatCounter propi i Cloudflare Pages: quan el client hagi donat l'OK.
