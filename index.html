@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Joc muzical pe ritmul piesei «Fenomenal» (Cabron & DJ CW): omul din copertă se rostogolește într-o bulă și virează pe ritm.">
+<meta property="og:title" content="Fenomenal · Cabron">
+<meta property="og:description" content="Joc muzical pe ritmul piesei «Fenomenal» (Cabron & DJ CW).">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#1b1b1b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fenomenal">
+<link rel="apple-touch-icon" href="icona-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Fenomenal · Cabron</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700;800&family=Bebas+Neue&family=Caveat:wght@500;700&display=swap">
+<style>
+/* Hârtie gri, cerneală neagră și roșul din «OM»: aceeași paletă ca coperta. */
+:root{
+  --ink:#141414; --ink-2:#2b2b2b; --paper:#d9d6cf; --paper-2:#c9c5bd; --paper-3:#b5b0a7; --paper-soft:#ece9e3;
+  --red:#c3161c; --red-deep:#8e0f14; --muted:#5c5852;
+  --display:"Bebas Neue","Oswald","Arial Narrow",Impact,sans-serif;
+  --body:"Alegreya Sans","Gill Sans","Trebuchet MS",sans-serif;
+  --hand:"Caveat","Segoe Print","Bradley Hand",cursive;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#1b1b1b;color:var(--ink);font-family:var(--body);overflow:hidden;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+[hidden]{display:none!important}
+#app{position:fixed;inset:0;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;background:#cfccc5}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+#cover2d{position:absolute;pointer-events:none;max-width:none;transition:none}
+.band{position:absolute;left:0;right:0;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;inset:0;pointer-events:none}
+.hud-top{top:0;padding-top:calc(10px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px}
+.prog{height:6px;border-radius:99px;background:rgba(20,20,20,.35);box-shadow:0 0 0 1.5px var(--ink);overflow:hidden}
+.prog-fill{height:100%;width:0;background:linear-gradient(90deg,var(--ink),var(--red))}
+.hud-row{display:flex;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--paper-soft);border-radius:4px;padding:3px 9px;box-shadow:0 0 0 2px var(--ink);font-weight:800;font-size:16px;font-variant-numeric:tabular-nums}
+#scoreChip b{font-family:var(--display);font-weight:400;font-size:22px;letter-spacing:.04em;line-height:1}
+#comboChip{color:var(--red)}
+#lives{display:inline-flex;gap:3px;margin-left:auto}
+#lives i{display:block;width:17px;height:17px;border-radius:50%;box-shadow:0 0 0 2px var(--ink) inset;background:radial-gradient(circle at 35% 35%,#fff 0 18%,transparent 19%),var(--paper-soft)}
+#lives i.on{background:radial-gradient(circle at 35% 35%,#fff 0 18%,transparent 19%),var(--red)}
+#btnPause{pointer-events:auto;width:40px;height:40px;border:0;border-radius:6px;background:var(--paper-soft);box-shadow:0 0 0 2px var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+#btnPause span{display:block;width:13px;height:15px;border-left:4px solid var(--ink);border-right:4px solid var(--ink)}
+#autoBadge{position:absolute;left:50%;transform:translateX(-50%);top:calc(70px + env(safe-area-inset-top,0px));font-family:var(--hand);font-weight:700;font-size:22px;color:var(--paper-soft);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.section-label{position:absolute;left:0;right:0;top:calc(118px + env(safe-area-inset-top,0px));text-align:center;font-family:var(--display);font-size:34px;letter-spacing:.08em;color:var(--paper-soft);text-shadow:0 2px 0 var(--ink),0 0 14px rgba(0,0,0,.6);opacity:0;transition:opacity .5s}
+.section-label.on{opacity:1}
+.hint{position:absolute;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));text-align:center;font-family:var(--hand);font-weight:700;font-size:25px;line-height:1.15;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.85);opacity:0;transition:opacity .4s;padding:0 18px}
+.hint.on{opacity:1}
+.caption{bottom:0;padding-bottom:calc(34px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
+.caption span{display:inline-block;max-width:560px;text-align:center;font-family:var(--hand);font-weight:700;font-size:22px;line-height:1.15;color:var(--ink);background:rgba(236,233,227,.78);border-radius:4px;padding:4px 12px 6px;box-shadow:0 0 0 1.5px rgba(20,20,20,.55)}
+.caption em{font-style:normal;color:var(--red)}
+#judgeLayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.judge{position:absolute;transform:translate(-50%,-50%);font-family:var(--display);font-size:30px;letter-spacing:.06em;white-space:nowrap;animation:jp .75s ease-out forwards;text-shadow:0 2px 0 rgba(0,0,0,.55)}
+.judge.perfect{color:#fff}.judge.good{color:var(--paper-soft)}.judge.ok{color:var(--paper-2)}.judge.miss{color:var(--red);text-shadow:0 2px 0 #fff}
+.judge.big{font-size:46px;color:var(--red);text-shadow:0 3px 0 var(--ink),0 0 18px rgba(255,255,255,.6)}
+.judge.life{color:#fff;font-size:24px}
+@keyframes jp{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.08)}100%{opacity:0;transform:translate(-50%,-140%) scale(1)}}
+#count{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:120px;color:var(--paper-soft);text-shadow:0 4px 0 var(--ink);pointer-events:none}
+.flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(195,22,28,.55));opacity:0;transition:opacity .35s}
+.flash.on{opacity:1;transition:none}
+
+/* ---------- targete (meniuri) ---------- */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:16px max(14px,env(safe-area-inset-left,0px)) calc(36px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(20,20,20,0) 40%,rgba(20,20,20,.45))}
+.card{width:100%;max-width:440px;background:var(--paper);background-image:radial-gradient(rgba(0,0,0,.05) 1px,transparent 1.2px);background-size:5px 5px;border-radius:6px;box-shadow:0 0 0 2.5px var(--ink),0 10px 30px rgba(0,0,0,.45);padding:16px 16px 14px;display:flex;flex-direction:column;gap:11px;max-height:calc(100% - 10px);overflow:auto}
+.eyebrow{margin:0;font-weight:800;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1,h2{margin:0;font-family:var(--display);font-weight:400;line-height:.95;letter-spacing:.05em}
+h1{font-size:54px}h2{font-size:40px}
+h1 b,h2 b{font-weight:400;color:var(--red)}
+.lede,.intro p{margin:0;font-size:17px;line-height:1.3}
+.intro{display:flex;flex-direction:column;gap:6px}
+.intro b{color:var(--red)}
+.btns{display:flex;flex-direction:column;gap:9px}
+button{font:inherit}
+.primary,.secondary,.link{display:block;width:100%;text-align:center;text-decoration:none;font-family:var(--display);font-size:25px;letter-spacing:.07em;border:0;border-radius:5px;padding:10px 14px 8px;cursor:pointer}
+.primary{background:var(--ink);color:var(--paper-soft);box-shadow:0 0 0 2.5px var(--ink),0 4px 0 2.5px var(--red)}
+.primary:active{transform:translateY(3px);box-shadow:0 0 0 2.5px var(--ink),0 1px 0 2.5px var(--red)}
+.primary[disabled]{opacity:.65;cursor:progress;font-size:21px}
+.secondary{background:var(--paper-soft);color:var(--ink);box-shadow:0 0 0 2.5px var(--ink)}
+.secondary:active{transform:translateY(1px)}
+.link{color:#fff;box-shadow:0 0 0 2.5px var(--ink)}
+.link.spotify{background:#1DB954;color:#06150b}
+.link.youtube{background:#e1251b}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.primary:focus-visible,.secondary:focus-visible,.link:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.opts{display:flex;flex-direction:column;gap:7px}
+.switch{display:flex;align-items:center;gap:10px;font-size:16.5px;cursor:pointer}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.switch span{display:flex;align-items:center;gap:10px}
+.switch span::before{content:"";flex:none;width:40px;height:23px;border-radius:99px;background-color:var(--paper-3);box-shadow:0 0 0 2px var(--ink);background-image:radial-gradient(circle at 11.5px 11.5px,var(--paper-soft) 8px,transparent 8.5px);transition:background-color .2s}
+.switch input:checked+span::before{background-color:var(--red);background-image:radial-gradient(circle at 28.5px 11.5px,var(--paper-soft) 8px,transparent 8.5px)}
+.switch input:focus-visible+span::before{outline:3px solid var(--red);outline-offset:2px}
+.note{margin:0;font-size:14.5px;color:var(--muted)}
+kbd{font-family:var(--body);font-weight:800;font-size:13px;background:var(--paper-soft);border-radius:3px;padding:0 5px;box-shadow:0 0 0 1.5px var(--ink)}
+.sync{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16.5px}
+.sync div{display:flex;align-items:center;gap:8px}
+.sync button{width:auto;font-size:22px;padding:4px 14px 2px}
+.sync output{min-width:66px;text-align:center;font-variant-numeric:tabular-nums;font-weight:800}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0}
+.stats div{background:var(--paper-soft);border-radius:4px;padding:7px 4px;text-align:center;min-width:0;box-shadow:0 0 0 2px var(--ink)}
+.stats dt{font-size:13.5px;color:var(--muted);font-weight:700}
+.stats dd{margin:2px 0 0;font-family:var(--display);font-size:28px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.credit{margin:0;font-size:13.5px;color:var(--muted)}
+.status{margin:0;font-size:13.5px;color:var(--muted)}
+#fsHelp .card{max-width:420px}
+#fsHelp ol{margin:0;padding-left:22px;font-size:16.5px;line-height:1.35}
+#rotate{position:absolute;inset:0;z-index:40;display:grid;place-items:center;background:#1b1b1b;color:var(--paper-soft);font-family:var(--display);font-size:30px;letter-spacing:.06em;text-align:center;padding:30px}
+#rotate svg{display:block;margin:0 auto 14px}
+/* ecrane late (calculator): cardul în dreapta, coperta rămâne vizibilă */
+#app.wide .overlay{align-items:flex-end;justify-content:center;background:linear-gradient(90deg,rgba(20,20,20,0) 50%,rgba(20,20,20,.5))}
+#app.wide .card{max-width:420px}
+/* credit EMS: link pe ecranul de start și de final; text simplu în timpul jocului */
+#emsCredit{position:absolute;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;padding:0 16px calc(8px + env(safe-area-inset-bottom,0px));pointer-events:none}
+#emsCredit a{pointer-events:auto;font-family:var(--body);font-weight:700;font-size:11.5px;letter-spacing:.12em;color:rgba(236,233,227,.72);text-decoration:none;text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 8px rgba(0,0,0,.6);padding:4px 6px;white-space:nowrap}
+#emsCredit a:hover,#emsCredit a:focus-visible{color:#fff;text-decoration:underline}
+#hud:not([hidden]) ~ #emsCredit a{pointer-events:none;cursor:default}
+@media (prefers-reduced-motion: reduce){.judge{animation-duration:.01s}.section-label,.hint{transition:none}}
+@media (max-height:640px){h1{font-size:44px}.intro p,.lede{font-size:15.5px}.card{gap:8px;padding:13px}.primary,.secondary,.link{font-size:22px;padding:8px 12px 6px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="scene" aria-label="Coperta «Fenomenal» devenită o lume desenată în creion"></canvas>
+  <img id="cover2d" src="coperta.jpg" alt="Coperta albumului «Fenomenal» de Cabron: omul vitruvian desenat în creion, cu versuri scrise de mână în roșu" width="1061" height="1068">
+  <div id="hud" hidden>
+    <div class="band hud-top">
+      <div class="prog"><div class="prog-fill" id="progFill"></div></div>
+      <div class="hud-row">
+        <span class="chip" id="scoreChip"><b id="score">0</b></span>
+        <span class="chip" id="comboChip" hidden>×<span id="combo">0</span></span>
+        <span id="lives" aria-label="Vieți"></span>
+        <button id="btnPause" aria-label="Pauză"><span></span></button>
+      </div>
+    </div>
+    <div id="autoBadge" hidden>Mod plimbare</div>
+    <div id="section" class="section-label"></div>
+    <div id="hint" class="hint"></div>
+    <div id="caption" class="band caption" hidden><span></span></div>
+    <div id="judgeLayer"></div>
+    <div id="flash" class="flash"></div>
+    <div id="count" hidden></div>
+  </div>
+
+  <div id="title" class="overlay">
+    <div class="card">
+      <div><p class="eyebrow">Cabron &amp; DJ CW</p><h1>FEN<b>OM</b>ENAL</h1></div>
+      <div class="intro">
+        <p>Omul din copertă s-a întors — acum se rostogolește într-o bulă.</p>
+        <p>Atinge <b>stânga</b> sau <b>dreapta</b> ecranului exact pe ritm ca să vireze. Când merge într-o parte, orice atingere îl readuce în sus. Unde drumul se rupe, atinge ca să sară. La refren, bate <b>FE-NO-ME-NAL</b>.</p>
+      </div>
+      <div class="btns">
+        <button id="btnPlay" class="primary" disabled>Se încarcă piesa… 0%</button>
+        <button id="btnFs" class="secondary">Ecran complet</button>
+      </div>
+      <div class="opts">
+        <label class="switch"><input type="checkbox" id="optAuto"><span>Mod plimbare: bula virează singură</span></label>
+        <label class="switch"><input type="checkbox" id="optCap" checked><span>Versurile pe ecran</span></label>
+      </div>
+      <p class="note"><kbd>←</kbd> <kbd>→</kbd> și <kbd>Spațiu</kbd>, sau atingeri pe ecran · Mai bine cu căști</p>
+      <p class="status" id="status"></p>
+    </div>
+  </div>
+
+  <div id="fsHelp" class="overlay" hidden>
+    <div class="card">
+      <h2>Ecran complet pe iPhone</h2>
+      <p class="lede">Safari pe iPhone nu lasă paginile web să treacă în ecran complet. Ca să joci fără bare:</p>
+      <ol>
+        <li>Apasă butonul <b>Partajare</b> (pătratul cu săgeată).</li>
+        <li>Alege <b>Adaugă pe ecranul principal</b>.</li>
+        <li>Deschide jocul de pe pictograma nouă.</li>
+      </ol>
+      <div class="btns"><button id="btnFsOk" class="primary">Am înțeles</button></div>
+    </div>
+  </div>
+
+  <div id="pause" class="overlay" hidden>
+    <div class="card">
+      <h2>Pauză</h2>
+      <div class="btns">
+        <button id="btnResume" class="primary">Continuă</button>
+        <button id="btnRestartP" class="secondary">De la început</button>
+      </div>
+      <div class="opts">
+        <label class="switch"><input type="checkbox" id="optAuto2"><span>Mod plimbare: bula virează singură</span></label>
+        <label class="switch"><input type="checkbox" id="optCap2" checked><span>Versurile pe ecran</span></label>
+      </div>
+      <div class="sync"><span>Sincronizare audio</span><div><button id="syncMinus" class="secondary" aria-label="Virajele mai devreme">&minus;</button><output id="syncVal">0 ms</output><button id="syncPlus" class="secondary" aria-label="Virajele mai târziu">+</button></div></div>
+      <p class="note">Dacă folosești căști fără fir și virajele par întârziate, încearcă valori pozitive.</p>
+    </div>
+  </div>
+
+  <div id="fail" class="overlay" hidden>
+    <div class="card">
+      <p class="eyebrow" id="failPct">Ai ajuns la 0 %</p>
+      <h2>Bula s-a <b>spart</b>!</h2>
+      <p class="lede">Virează exact pe ritm. Ultimul punct de control te așteaptă.</p>
+      <div class="btns">
+        <button id="btnRetryCp" class="primary">Continuă de la punctul de control</button>
+        <button id="btnRetry0" class="secondary">De la început</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="end" class="overlay" hidden>
+    <div class="card">
+      <p class="eyebrow">Cabron · Fenomenal</p>
+      <h2>Înapoi în <b>copertă</b></h2>
+      <p class="lede" id="endLede">Ai terminat drumul pe ritmul piesei.</p>
+      <dl class="stats">
+        <div><dt>Scor</dt><dd id="stScore">0</dd></div>
+        <div><dt>Perfecte</dt><dd id="stPerf">0%</dd></div>
+        <div><dt>Combo maxim</dt><dd id="stCombo">0</dd></div>
+      </dl>
+      <div class="btns">
+        <div class="row2">
+          <a id="btnSpotify" class="link spotify" href="https://open.spotify.com/track/39q1F0urwVZYNeNuxQCPK6" target="_blank" rel="noopener">Spotify</a>
+          <a id="btnYoutube" class="link youtube" href="https://www.youtube.com/watch?v=jZQqrR39aVc" target="_blank" rel="noopener">YouTube</a>
+        </div>
+        <button id="btnAgain" class="primary">Joacă din nou</button>
+        <button id="btnWatch" class="secondary">Vezi în modul plimbare</button>
+      </div>
+      <p class="credit">«Fenomenal» · Cabron &amp; DJ CW</p>
+    </div>
+  </div>
+
+  <div id="rotate" hidden>
+    <div><svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="44" rx="4" fill="none" stroke="#ece9e3" stroke-width="3"/><path d="M14 54c8 6 28 6 36 0" fill="none" stroke="#c3161c" stroke-width="3"/><path d="M46 50l4 4-5 3" fill="none" stroke="#c3161c" stroke-width="3"/></svg>Întoarce telefonul<br>în poziție verticală</div>
+  </div>
+
+  <div id="emsCredit"><a href="https://www.europemultimediaservice.com" target="_blank" rel="noopener">© EMS – WWW.EUROPEMULTIMEDIASERVICE.COM</a></div>
+</div>
+<script src="three.min.js"></script>
+<script src="nivell.js"></script>
+<script src="joc.js"></script>
+</body>
+</html>
